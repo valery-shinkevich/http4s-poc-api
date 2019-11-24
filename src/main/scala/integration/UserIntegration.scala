@@ -19,8 +19,7 @@ sealed trait UserIntegration[F[_]] {
 }
 
 object UserIntegration {
-
-  @inline def apply[F[_]: Concurrent: Timer: -->[IO, *[_]]: -->[Future, *[_]]](
+  @inline def apply[F[_]: Concurrent: Timer: IO --> *[_]: Future --> *[_]](
     userDep: TeamTwoHttpApi,
     preferencesDep: TeamOneHttpApi,
     t: FiniteDuration
@@ -28,7 +27,6 @@ object UserIntegration {
     implicit CS: ContextShift[F]
   ): UserIntegration[F] =
     new UserIntegration[F] {
-
       def user: UserId => F[User] = { id =>
         CS.shift >> userDep.user(id).as[F].timeout(t).narrowFailureTo[UserErr]
       }

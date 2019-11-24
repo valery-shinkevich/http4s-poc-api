@@ -24,10 +24,13 @@ final case class PriceService[F[_]: Concurrent: Timer: ContextShift: Parallel[*[
   ev1: IO --> F,
   ev2: Future --> F
 ) {
-
   private[this] val cache      = CacheIntegration[F](cacheDep, 10.seconds)
   private[this] val userInt    = UserIntegration[F](teamTwoStupidName, teamOneStupidName, 10.seconds)
   private[this] val productInt = ProductIntegration[F](teamTwoStupidName, teamOneStupidName, 10.seconds)
+
+  private[this] lazy val productRepo: ProductRepo[F]             = ProductRepo(cache, productInt, logger)
+  private[this] lazy val priceCalculator: PriceCalculator[F]     = PriceCalculator(productInt, logger)
+  private[this] lazy val preferenceFetcher: PreferenceFetcher[F] = PreferenceFetcher(userInt, logger)
 
   /**
     * Going back to ParallelEffect and the fs2 implementation as the new cats.effect version 0.10 changes the semantic
@@ -57,13 +60,4 @@ final case class PriceService[F[_]: Concurrent: Timer: ContextShift: Parallel[*[
     logger.debug(s"Collecting product details for products $productIds") >>
       productRepo.storedProducts(productIds) <*
       logger.debug(s"Product details collection for $productIds completed")
-
-  private[this] lazy val preferenceFetcher: PreferenceFetcher[F] =
-    PreferenceFetcher(userInt, logger)
-
-  private[this] lazy val productRepo: ProductRepo[F] =
-    ProductRepo(cache, productInt, logger)
-
-  private[this] lazy val priceCalculator: PriceCalculator[F] =
-    PriceCalculator(productInt, logger)
 }

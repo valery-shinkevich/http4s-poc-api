@@ -18,15 +18,13 @@ sealed trait CacheIntegration[F[_]] {
 }
 
 object CacheIntegration {
-
-  @inline def apply[F[_]: Concurrent: Timer: -->[IO, *[_]]](
+  @inline def apply[F[_]: Concurrent: Timer: IO --> *[_]](
     cache: TeamThreeCacheApi[ProductId, Product],
     t: FiniteDuration
   )(
     implicit CS: ContextShift[F]
   ): CacheIntegration[F] =
     new CacheIntegration[F] {
-
       def cachedProduct: ProductId => F[Option[Product]] =
         pId => CS.shift >> cache.get(pId).as[F].timeout(t).narrowFailureTo[CacheLookupError]
 

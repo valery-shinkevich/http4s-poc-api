@@ -14,13 +14,12 @@ import org.http4s.{ EntityDecoder, EntityEncoder, HttpApp }
 import service.PriceService
 import zio.interop.catz._
 import zio.interop.catz.implicits._
-import zio.{ RIO, Task, ZIO }
+import zio.{ RIO, Task, ZEnv, ZIO }
 
 import scala.concurrent.ExecutionContext
 import model.DomainModelCodecs._
 
 object Main extends zio.interop.catz.CatsApp with RuntimeThreadPools with Codecs {
-
   private[this] val priceService: RIO[String, PriceService[Task]] =
     log4sFromName map { log =>
       PriceService[Task](
@@ -54,18 +53,16 @@ object Main extends zio.interop.catz.CatsApp with RuntimeThreadPools with Codecs
   private[this] val serviceRuntime: RIO[String, Unit] =
     priceService >>> httpApp >>> runningServer
 
-  def run(args: List[String]): ZIO[Environment, Nothing, Int] =
+  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
     serviceRuntime.fold(_ => 0, _ => 1) provide "App log"
 }
 
 sealed trait RuntimeThreadPools {
-
   implicit val futureExecutionContext: ExecutionContext =
     ExecutionContext.fromExecutor(new ForkJoinPool())
 }
 
 sealed trait Codecs {
-
   implicit val priceRequestPayloadDecoder: EntityDecoder[Task, PricesRequestPayload] =
     jsonOf[Task, PricesRequestPayload]
 
